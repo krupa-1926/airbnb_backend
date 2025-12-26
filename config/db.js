@@ -10,7 +10,7 @@ const connectWithDB = () => {
     .catch((err) => {
       console.log(`DB connection failed`);
       console.log(err);
-      process.exit(1);
+      // process.exit(1); 
     });
 };
 
