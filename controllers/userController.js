@@ -104,46 +104,84 @@ exports.profile = async (req, res) => {
   }
 };
 
+// exports.updateUser = async (req, res) => {
+//   try {
+//     const { name, password, picture } = req.body;
+//     const userId = req.user.id;
+
+//     const updateData = {};
+//     if (name) updateData.name = name;
+//     if (picture) updateData.picture = picture;
+
+//     if (password) {
+//       const bcrypt = require('bcryptjs');
+//       updateData.password = await bcrypt.hash(password, 10);
+//     }
+
+//     const updatedUser = await User.findByIdAndUpdate(
+//       userId,
+//       updateData,
+//       { new: true }
+//     );
+
+//     if (!updatedUser) {
+//       return res.status(404).json({
+//         success: false,
+//         message: 'User not found',
+//       });
+//     }
+
+//     res.status(200).json({
+//       success: true,
+//       user: updatedUser,
+//     });
+//   } catch (error) {
+//     console.error('Update user error:', error);
+//     res.status(500).json({
+//       success: false,
+//       message: 'Server error',
+//     });
+//   }
+// };
+
 exports.updateUser = async (req, res) => {
   try {
     const { name, password, picture } = req.body;
-    const userId = req.user.id;
 
-    const updateData = {};
-    if (name) updateData.name = name;
-    if (picture) updateData.picture = picture;
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    if (name) user.name = name;
+    if (picture) user.picture = picture;
 
     if (password) {
-      const bcrypt = require('bcryptjs');
-      updateData.password = await bcrypt.hash(password, 10);
+      user.password = await bcrypt.hash(password, 10);
+      user.passwordChangedAt = Date.now(); // 🔥 IMPORTANT
     }
 
-    const updatedUser = await User.findByIdAndUpdate(
-      userId,
-      updateData,
-      { new: true }
+    await user.save();
+
+    // 🔐 ISSUE NEW TOKEN
+    const token = jwt.sign(
+      { id: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
     );
 
-    if (!updatedUser) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found',
-      });
-    }
-
-    res.status(200).json({
+    res.json({
       success: true,
-      user: updatedUser,
+      user,
+      token,
     });
+
   } catch (error) {
-    console.error('Update user error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error',
-    });
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Update failed' });
   }
 };
-
 
 
 exports.logout = async (req, res) => {
