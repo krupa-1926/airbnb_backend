@@ -19,23 +19,41 @@
 // };
 
 
-const decoded = jwt.verify(token, process.env.JWT_SECRET);
+const jwt = require('jsonwebtoken');
+const User = require('../models/User');
 
-const user = await User.findById(decoded.id);
+module.exports = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
 
-if (!user) {
-  return res.status(401).json({ message: 'User not found' });
-}
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Not authorized' });
+    }
 
-// 🔥 CHECK TOKEN ISSUE TIME
-if (user.passwordChangedAt) {
-  const changedTimestamp = parseInt(user.passwordChangedAt.getTime() / 1000);
+    const token = authHeader.split(' ')[1];
 
-  if (decoded.iat < changedTimestamp) {
-    return res.status(401).json({ message: 'Password changed. Login again.' });
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    const user = await User.findById(decoded.id);
+
+    if (!user) {
+      return res.status(401).json({ message: 'User not found' });
+    }
+
+    // 🔥 PASSWORD INVALIDATION CHECK
+    if (user.passwordChangedAt) {
+      const changedAt = parseInt(user.passwordChangedAt.getTime() / 1000);
+      if (decoded.iat < changedAt) {
+        return res
+          .status(401)
+          .json({ message: 'Password changed. Please login again.' });
+      }
+    }
+
+    req.user = user;
+    next();
+  } catch (error) {
+    return res.status(401).json({ message: 'Invalid token' });
   }
-}
-
-req.user = user;
-next();
+};
 
