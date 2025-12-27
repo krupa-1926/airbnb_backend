@@ -20,8 +20,7 @@ const app = express();
 app.use(express.json());
 
 const whiteList = [
-  'https://airbnb-clone0.netlify.app',
-  'https://airbnb-1.netlify.app',
+  'https://airbnbfrontend-five.vercel.app',
   'http://localhost:5173',
 ];
 
@@ -41,7 +40,7 @@ app.use(
 );
 
 // use express router
-app.use('/', require('./routes'));
+app.use('/api', require('./routes'));
 
 app.listen(process.env.PORT || 8000, (err) => {
   if (err) {
