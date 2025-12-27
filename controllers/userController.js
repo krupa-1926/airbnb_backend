@@ -15,22 +15,29 @@ exports.register = async (req, res) => {
     }
 
     // check if user already registered
-    let user = await User.findOne({ email });
+    let existUser = await User.findOne({ email });
 
-    if (user) {
+    if (existUser) {
       return res.status(400).json({
         message: 'User already registered',
       });
     }
 
-    user = await User.create({
+      const hashedPassword = await bcrypt.hash(password, 10)
+     const user = await User.create({
       name,
       email,
-      password: await bcrypt.hash(password, 10),
+      password: hashedPassword,
     });
 
+       const token = jwt.sign(
+      { id: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    )
     res.status(200).json({
       user,
+      token
     });
   } catch (err) {
     res.status(500).json({
@@ -39,6 +46,7 @@ exports.register = async (req, res) => {
     });
   }
 };
+
 
 exports.login = async (req, res) => {
   try {
@@ -95,6 +103,35 @@ exports.profile = async (req, res) => {
     });
   }
 };
+
+exports.updateUser = async (req, res) => {
+  try {
+    const { name, password } = req.body;
+    const userId = req.user.id;
+
+    const updateData = {};
+    if (name) updateData.name = name;
+    if (password) updateData.password = password;
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      updateData,
+      { new: true }
+    );
+
+    res.status(200).json({
+      success: true,
+      user: updatedUser,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: "User update failed",
+    });
+  }
+};
+
 
 exports.logout = async (req, res) => {
   res.cookie('token', '').json({
