@@ -106,12 +106,17 @@ exports.profile = async (req, res) => {
 
 exports.updateUser = async (req, res) => {
   try {
-    const { name, password } = req.body;
+    const { name, password, picture } = req.body;
     const userId = req.user.id;
 
     const updateData = {};
     if (name) updateData.name = name;
-    if (password) updateData.password = password;
+    if (picture) updateData.picture = picture;
+
+    if (password) {
+      const bcrypt = require('bcryptjs');
+      updateData.password = await bcrypt.hash(password, 10);
+    }
 
     const updatedUser = await User.findByIdAndUpdate(
       userId,
@@ -119,18 +124,26 @@ exports.updateUser = async (req, res) => {
       { new: true }
     );
 
+    if (!updatedUser) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+
     res.status(200).json({
       success: true,
       user: updatedUser,
     });
   } catch (error) {
-    console.error(error);
+    console.error('Update user error:', error);
     res.status(500).json({
       success: false,
-      message: "User update failed",
+      message: 'Server error',
     });
   }
 };
+
 
 
 exports.logout = async (req, res) => {
