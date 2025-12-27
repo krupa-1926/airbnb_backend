@@ -148,7 +148,9 @@ exports.login = async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) return res.status(400).json({ message: 'User not found' });
 
+     console.log('DB Password Hash:', user.password); 
     const isMatch = await bcrypt.compare(password, user.password);
+        console.log('Password Match:', isMatch);
     if (!isMatch) return res.status(401).json({ message: 'Invalid credentials' });
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
@@ -176,15 +178,18 @@ exports.profile = async (req, res) => {
 exports.updateUser = async (req, res) => {
   try {
     const { name, password } = req.body;
-    const user = req.user;
+    // const user = req.user;
+      const user = await User.findById(req.user.id);
 
     if (!user) return res.status(404).json({ message: 'User not found' });
 
     if (name) user.name = name;
     if (password) {
+      console.log('Old Hash Before Update:', user.password); 
       const salt = await bcrypt.genSalt(10);
       user.password = await bcrypt.hash(password, salt);
       user.passwordChangedAt = Date.now(); // invalidate old tokens
+      console.log('New Hash After Update:', user.password);
     }
 
     await user.save();
