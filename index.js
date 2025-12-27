@@ -29,7 +29,7 @@ app.use(
   cors({
     credentials: true,
     origin: function (origin, callback) {
-      if (whiteList.indexOf(origin !== -1)) {
+      if (!origin || whiteList.includes(origin)) {
         callback(null, true);
       } else {
         callback(new Error('Not allowed by cors'));
